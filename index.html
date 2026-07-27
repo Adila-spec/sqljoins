@@ -482,13 +482,36 @@
 }
 
 .solution-box {
-  margin-top: 10px;
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+}
+
+.solution-box h4 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  color: #1e3a8a;
+}
+
+.solution-box pre {
+  background: #111827;
+  color: #f9fafb;
   padding: 12px;
-  border-radius: 8px;
-  background: #eff6ff;
-  border: 1px solid #93c5fd;
-  line-height: 1.6;
-} 
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.solution-box code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+}
+
+.solution-box p {
+  margin-bottom: 0;
+  color: #374151;
+}
   
 </style>
 </head>
@@ -590,6 +613,132 @@ const ANSWER_KEY = {
     ["household"]
   ]
 };
+
+const SQL_SOLUTIONS = {
+  joins: [
+`
+SELECT
+    a.accountno,
+    t.netamount
+FROM transactions t
+JOIN account a
+    ON t.accountid = a.recid;
+`,
+`
+SELECT
+    t.recid,
+    a.accountno,
+    tn.note
+FROM transactions t
+JOIN account a
+    ON t.accountid = a.recid
+LEFT JOIN transaction_note tn
+    ON tn.transactionid = t.recid;
+`
+  ]
+};
+
+const EXPLANATIONS = {
+  joins: [
+    "Every transaction joins to exactly one account, so 7 rows are returned.",
+    "LEFT JOIN preserves transactions that do not have notes."
+  ]
+};
+
+  filtering: [
+    `Transactions with trancodeid 20 are excluded because both have negative amounts.`,
+
+    `Not identical. A transaction could have a positive amount while still using trancode 20.`,
+
+    `March records are 1005, 1006, and 1007. Trancode 10 appears once and trancode 30 appears once.`,
+
+    `1003 and 1004 qualify because both occur during February.`,
+
+    `Zero rows remain because account J7M242999 has no March transactions.`
+  ],
+
+  regex: [
+    `1001 and 1006 match because they contain B3S-###### patterns.`,
+
+    `1001 returns 732073. 1003 returns blank because it uses J7Z rather than B3S.`,
+
+    `Prefix = J7Z. Number = 119002.`,
+
+    `regexp_extract returns an empty string. NULLIF converts it to NULL.`,
+
+    `1001, 1003, and 1006 are TRUE. The others are FALSE.`
+  ],
+
+  ctes: [
+    `The CTE returns 4 rows.`,
+
+    `J7Z022009 appears twice because two monthlyflow records exist.`,
+
+    `Results are the same, but a CTE is easier to reuse multiple times.`,
+
+    `All three account numbers are returned: J7Z022009, J7M242999, C9B024306.`,
+
+    `Separate CTEs make individual firm counts easier to report.`
+  ],
+
+  windows: [
+    `2026-03-05 gets rn=1 and 2026-01-05 gets rn=2.`,
+
+    `Monthlyflows collapses to 3 rows, one per account.`,
+
+    `Transaction 1001 survives because it is the earliest transaction for account 1.`,
+
+    `Six rows return because 2 flow rows x 3 transactions = 6 combinations.`,
+
+    `You lose access to non-grouped detail columns.`
+  ],
+
+  aliasing: [
+    `Backticks are required because the alias contains spaces.`,
+
+    `Yes, accountno and repcode appear twice.`,
+
+    `It allows quick debugging while still highlighting important columns.`,
+
+    `Add the trancode ID as well so descriptions are not the only identifier.`,
+
+    `Rename IDs to business-friendly names such as Account ID, Representative ID, and Custodian ID.`
+  ],
+
+  debugging: [
+    `A single-row lookup confirms the transaction exists before checking joins.`,
+
+    `No row is expected. If one appears, the missing-note assumption is incorrect.`,
+
+    `Commented lookups are reusable for future investigations.`,
+
+    `Hardcoding forces you to edit multiple places whenever the account changes.`,
+
+    `A parameterized approach makes future investigations quicker and safer.`
+  ],
+
+  knowledge: [
+    `Householding groups related accounts together so advisors and clients see a complete relationship.`,
+
+    `AUM overstatement occurs when accounts are counted multiple times across households.`,
+
+    `Contra account mapping links closed accounts to replacement accounts.`,
+
+    `Check onboarding, ownership files, feeds, account status, and permissions.`,
+
+    `SFTP automation removes manual uploads and reduces operational risk.`,
+
+    `Addepar provides performance reporting, aggregation, and the investor portal.`,
+
+    `Broker Dealers provide infrastructure and compliance. RIAs operate under a fiduciary model.`,
+
+    `Historical conversions involve legacy records, ownership changes, and closed accounts.`,
+
+    `Servicing teams own client issues while product teams own platform functionality.`,
+
+    `Householding is critical for advisor growth, onboarding, visibility, and client experience.`
+  ]
+};  
 const TOPICS = [
   {
     id: "joins",
@@ -809,7 +958,7 @@ if (topic.id === "knowledge") {
 
     const body = document.createElement('div');
     body.className = 'q-body';
-    body.innerHTML = q.prompt;
+    body.innerHTML = q;
     card.appendChild(body);
 
   const storageKey = `sqljoins-answer:${topic.id}:${i}`;
@@ -862,7 +1011,22 @@ revealBtn.className = 'show-answer-btn';
 const solution = document.createElement('div');
 solution.className = 'solution-box';
 solution.style.display = 'none';
-solution.innerHTML = q.answer;
+
+const sql =
+  SQL_SOLUTIONS[topic.id]?.[i] ||
+  "Solution not available.";
+
+const explanation =
+  EXPLANATIONS[topic.id]?.[i] ||
+  "";
+
+solution.innerHTML = `
+<h4>SQL Solution</h4>
+<pre><code>${sql}</code></pre>
+
+<h4>Explanation</h4>
+<p>${explanation}</p>
+`;
 
 revealBtn.onclick = () => {
   solution.style.display =
