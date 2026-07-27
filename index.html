@@ -687,7 +687,6 @@ const TOPICS = [
     ]
   }
 ];
-];
 
 function renderTabs(activeId) {
   const tabsEl = document.getElementById('tabs');
@@ -789,13 +788,22 @@ if (topic.id === "knowledge") {
     body.innerHTML = q;
     card.appendChild(body);
 
-    const storageKey = `sqljoins-answer:${topic.id}:${i}`;
-    const answer = document.createElement('textarea');
-    answer.className = 'q-answer';
-    answer.placeholder = 'Type your answer here…';
-    answer.rows = 3;
-    try { answer.value = localStorage.getItem(storageKey) || ''; } catch (e) {}
-    answer.addEventListener('input', () => {
+  const storageKey = `sqljoins-answer:${topic.id}:${i}`;
+
+const answer = document.createElement('textarea');
+answer.className = 'q-answer';
+answer.placeholder = 'Type your answer here…';
+answer.rows = 3;
+
+const feedback = document.createElement('div');
+feedback.className = 'answer-feedback';
+feedback.textContent = 'Enter an answer';
+
+try {
+  answer.value = localStorage.getItem(storageKey) || '';
+} catch (e) {}
+
+answer.addEventListener('input', () => {
 
   try {
     localStorage.setItem(storageKey, answer.value);
@@ -821,11 +829,8 @@ if (topic.id === "knowledge") {
     feedback.className = "answer-feedback incorrect";
   }
 });
-    card.appendChild(answer);
-  const feedback = document.createElement('div');
-  feedback.className = 'answer-feedback';
-  feedback.textContent = 'Enter an answer';
-  card.appendChild(feedback);
+card.appendChild(answer);
+card.appendChild(feedback);
     thread.appendChild(card);
   });
   mount.appendChild(thread);
