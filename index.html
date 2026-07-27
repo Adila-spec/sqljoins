@@ -466,6 +466,30 @@
 .knowledge-box li {
   margin-bottom: 8px;
 }
+ .show-answer-btn {
+  margin-top: 10px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.show-answer-btn:hover {
+  opacity: .9;
+}
+
+.solution-box {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  line-height: 1.6;
+} 
+  
 </style>
 </head>
 <body>
@@ -785,7 +809,7 @@ if (topic.id === "knowledge") {
 
     const body = document.createElement('div');
     body.className = 'q-body';
-    body.innerHTML = q;
+    body.innerHTML = q.prompt;
     card.appendChild(body);
 
   const storageKey = `sqljoins-answer:${topic.id}:${i}`;
@@ -830,7 +854,25 @@ answer.addEventListener('input', () => {
   }
 });
 card.appendChild(answer);
-card.appendChild(feedback);
+
+const revealBtn = document.createElement('button');
+revealBtn.textContent = 'Show Answer';
+revealBtn.className = 'show-answer-btn';
+
+const solution = document.createElement('div');
+solution.className = 'solution-box';
+solution.style.display = 'none';
+solution.innerHTML = q.answer;
+
+revealBtn.onclick = () => {
+  solution.style.display =
+    solution.style.display === 'none'
+      ? 'block'
+      : 'none';
+};
+
+card.appendChild(revealBtn);
+card.appendChild(solution);
     thread.appendChild(card);
   });
   mount.appendChild(thread);
