@@ -417,7 +417,25 @@
     border-color: var(--accent);
     background: var(--panel);
   }
+.answer-feedback {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
 
+.answer-feedback.correct {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.answer-feedback.incorrect {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
   footer.hint-strip {
     font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
@@ -427,6 +445,27 @@
     background: var(--panel-alt);
     flex: 0 0 auto;
   }
+  .knowledge-box {
+  background: #eff6ff;
+  border: 2px solid #93c5fd;
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 24px;
+}
+
+.knowledge-box h3 {
+  margin-top: 0;
+  color: #1d4ed8;
+}
+
+.knowledge-box ul {
+  padding-left: 20px;
+  margin-bottom: 0;
+}
+
+.knowledge-box li {
+  margin-bottom: 8px;
+}
 </style>
 </head>
 <body>
@@ -513,7 +552,20 @@ const TABLES = {
     ]
   }
 };
-
+const ANSWER_KEY = {
+  knowledge: [
+    ["household"],
+    ["aum"],
+    ["closed"],
+    ["ownership"],
+    ["automation"],
+    ["addepar"],
+    ["broker", "ria"],
+    ["historical"],
+    ["servicing"],
+    ["household"]
+  ]
+};
 const TOPICS = [
   {
     id: "joins",
@@ -605,7 +657,36 @@ const TOPICS = [
       `You ran <code>SELECT recid FROM account WHERE accountno = 'J7M242999'</code> and got back 2. Now imagine hardcoding that 2 into five scratch queries below it.<span class="hint">what breaks the next time you need to check a different account?</span>`,
       `Turn that hardcoded filter into a named CTE or a notebook parameter placeholder like <code>:account_no_search</code>.<span class="hint">what do you gain the next time you need to swap in a different account number?</span>`,
     ]
-  },
+    },
+
+  {
+    id: "knowledge",
+    label: "Knowledge Sharing",
+    tables: ["account","transactions","monthlyflows"],
+    intro: "Core concepts, recurring issues, and business knowledge for supporting Kestra, Addepar, advisor onboarding, and householding workflows.",
+    questions: [
+      `Why is householding important in wealth management?<span class="hint">Think account aggregation, family relationships, advisor visibility, and client experience.</span>`,
+
+      `What causes AUM overstatement issues?<span class="hint">Consider duplicate household relationships and account mappings.</span>`,
+
+      `What is contra account mapping?<span class="hint">Think closed accounts and replacement accounts.</span>`,
+
+      `What should you investigate when an account is missing from Addepar?<span class="hint">Consider onboarding, ownership files, feeds, and account status.</span>`,
+
+      `What is the purpose of SFTP automation?<span class="hint">Why are manual uploads a risk?</span>`,
+
+      `How does Addepar fit into the Kestra ecosystem?<span class="hint">Performance reporting, investor portal, advisor experience.</span>`,
+
+      `What is the difference between a Broker Dealer and an RIA?<span class="hint">Think fiduciary responsibility and business model.</span>`,
+
+      `Why are historical conversions difficult?<span class="hint">Closed accounts, custodians, ownership, and legacy data structures.</span>`,
+
+      `Who should own client servicing issues versus product issues?<span class="hint">Think servicing team, product team, operations, and engineering.</span>`,
+
+      `Why is household management a strategic initiative for Kestra?<span class="hint">Consider Commonwealth transitions, advisor growth, and client visibility.</span>`
+    ]
+  }
+];
 ];
 
 function renderTabs(activeId) {
@@ -672,7 +753,30 @@ function renderQuestions(topic) {
   head.className = 'topic-head';
   head.innerHTML = `<h1>${topic.label}</h1><p>${topic.intro}</p>`;
   mount.appendChild(head);
+if (topic.id === "knowledge") {
+  const kb = document.createElement("div");
 
+  kb.className = "knowledge-box";
+
+  kb.innerHTML = `
+    <h3>Common Production Issues</h3>
+
+    <ul>
+      <li>Householding and account visibility</li>
+      <li>AUM overstatement caused by duplicate relationships</li>
+      <li>Missing accounts in Addepar</li>
+      <li>Historical data conversion gaps</li>
+      <li>Contra account mapping</li>
+      <li>Ownership file discrepancies</li>
+      <li>SFTP automation and file delivery</li>
+      <li>Advisor onboarding readiness</li>
+      <li>Trustee and beneficiary access questions</li>
+      <li>NFS, Direct Business, and Schwab feed issues</li>
+    </ul>
+  `;
+
+  mount.appendChild(kb);
+}
   const thread = document.createElement('div');
   thread.className = 'q-thread';
   topic.questions.forEach((q, i) => {
@@ -692,10 +796,36 @@ function renderQuestions(topic) {
     answer.rows = 3;
     try { answer.value = localStorage.getItem(storageKey) || ''; } catch (e) {}
     answer.addEventListener('input', () => {
-      try { localStorage.setItem(storageKey, answer.value); } catch (e) {}
-    });
-    card.appendChild(answer);
 
+  try {
+    localStorage.setItem(storageKey, answer.value);
+  } catch (e) {}
+
+  const expected =
+    ANSWER_KEY[topic.id] &&
+    ANSWER_KEY[topic.id][i];
+
+  if (!expected) return;
+
+  const value = answer.value.toLowerCase();
+
+  const correct = expected.some(word =>
+    value.includes(word.toLowerCase())
+  );
+
+  if (correct) {
+    feedback.textContent = "✅ Correct";
+    feedback.className = "answer-feedback correct";
+  } else {
+    feedback.textContent = "❌ Not quite yet";
+    feedback.className = "answer-feedback incorrect";
+  }
+});
+    card.appendChild(answer);
+  const feedback = document.createElement('div');
+  feedback.className = 'answer-feedback';
+  feedback.textContent = 'Enter an answer';
+  card.appendChild(feedback);
     thread.appendChild(card);
   });
   mount.appendChild(thread);
