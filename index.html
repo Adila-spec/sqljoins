@@ -869,7 +869,26 @@ const TOPICS = [
 
       `Who should own client servicing issues versus product issues?<span class="hint">Think servicing team, product team, operations, and engineering.</span>`,
 
-      `Why is household management a strategic initiative for Kestra?<span class="hint">Consider Commonwealth transitions, advisor growth, and client visibility.</span>`
+        `Why is household management a strategic initiative for Kestra?<span class="hint">Consider Commonwealth transitions, advisor growth, and client visibility.</span>`
+    ]
+  },
+
+  {
+    id: "qa",
+    label: "QA",
+    tables: ["account","transactions","monthlyflows"],
+    intro: "Feed procurement, reconciliation, Addepar support, and production troubleshooting.",
+    questions: [
+      `What is the purpose of feed procurement?`,
+      `Why reconcile Investigo accounts against Addepar?`,
+      `What is the difference between a feed issue and a mapping issue?`,
+      `What should happen when missing feeds are discovered?`,
+      `Why are NFS and large asset groups prioritized first?`,
+      `Who should you connect with regarding Investigo reconciliation?`,
+      `Why is BlueSpring being reviewed separately?`,
+      `What can cause an account to exist in Addepar but not appear in the portal?`,
+      `What does account reconciliation prove?`,
+      `What is the purpose of the Addepar live-account support process?`
     ]
   }
 ];
@@ -929,7 +948,16 @@ function renderTables(relevantTables) {
     mount.appendChild(card);
   });
 }
+function getErrorContext(sql, errorMessage) {
 
+  const lines = sql.split('\n');
+
+  return lines
+    .map((line, idx) =>
+      `${idx + 1} | ${line}`
+    )
+    .join('\n');
+}
 function renderQuestions(topic) {
   const mount = document.getElementById('questions-mount');
   mount.innerHTML = '';
@@ -1015,11 +1043,27 @@ runBtn.onclick = () => {
     return;
   }
 
+  try {
+
+  db.exec(answer.value);
+
   resultBox.className =
     'answer-feedback correct';
 
   resultBox.textContent =
-    '✅ Query submitted';
+    '✅ Query executed successfully';
+
+} catch (err) {
+
+  resultBox.className =
+    'answer-feedback incorrect';
+
+resultBox.innerHTML = `
+  <strong>❌ SQL Error</strong><br>
+  ${err.message}
+  <pre>${getErrorContext(answer.value, err.message)}</pre>
+`;
+}
 };
 
 card.appendChild(runBtn);
