@@ -5,9 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Query Practice — Investigo Schema Drills</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-header {
-  border-bottom: 1px solid var(--border);
-  background: #ffffff;}
 <style>
  :root{
   --bg: #eef4fb;
@@ -470,17 +467,21 @@ header {
 .knowledge-box li {
   margin-bottom: 8px;
 }
- .show-answer-btn {
+.show-answer-btn {
   margin-top: 10px;
-  background: var(--accent);
+  background: #1e3a8a;
   color: white;
   border: none;
   border-radius: 8px;
-  padding: 8px 12px;
+  padding: 10px 14px;
   cursor: pointer;
-  font-weight: 700;
+  font-weight: 600;
+  transition: .15s ease;
 }
 
+.show-answer-btn:hover {
+  background: #1d4ed8;
+}
 .show-answer-btn:hover {
   opacity: .9;
 }
