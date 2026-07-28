@@ -749,40 +749,28 @@ const EXPLANATIONS = {
   ]
  ,
 
+
 qa: [
 
-`Feed procurement appears to be in good shape overall. Remaining gaps should be identified and tracked through Jira backlog items.`,
+`Feed procurement ensures required custodian, account, and transaction feeds are onboarded into Addepar so advisor and client data is available.`,
 
-`Jira stories provide visibility, ownership, prioritization, and tracking for any missing feed work.`,
+`Investigo reconciliation validates that the accounts expected from Investigo actually appear in Addepar.`,
 
-`Ashish should be consulted to define reconciliation expectations, account populations, scope, and priorities.`,
+`A feed issue means data never arrived. A mapping issue means data arrived but is linked incorrectly to advisors, households, clients, or firms.`,
 
-`Investigo reconciliation verifies that all expected accounts are appearing in Addepar.`,
+`Missing feeds should be documented through Jira backlog items so ownership, priority, and completion status can be tracked.`,
 
-`Feed onboarding gets data into Addepar. Account reconciliation confirms the expected accounts actually arrived.`,
+`NFS and large asset groups are prioritized because they represent significant assets and advisor impact.`,
 
-`Accounts may be missing because a feed is not configured, not started, incomplete, or experiencing onboarding problems.`,
+`Ashish should be contacted to understand Investigo reconciliation requirements, priorities, expected outputs, and scope.`,
 
-`Accounts may be present in Addepar but not visible because of rep-code, client, household, ownership, or hierarchy mapping problems.`,
+`BlueSpring is being reviewed separately so the team can understand its current state before applying standard Kestra processes.`,
 
-`Orphan accounts are accounts that exist in the system but are not linked to the proper rep, client, household, or firm.`,
+`Portal visibility issues can be caused by household mappings, ownership relationships, advisor mappings, rep-code mappings, or hierarchy problems even when the account exists in Addepar.`,
 
-`NFS and Direct Business represent major asset groups and are expected to deliver the highest business impact.`,
+`Account reconciliation proves that expected accounts are present and accounted for within Addepar.`,
 
-`Performance and transaction history begin accumulating once feeds are active, so onboarding delays reduce available history.`,
-
-`BlueSpring needs a separate assessment to understand its current feed and operational state.`,
-
-`The goal is to establish one standard Kestra operating process before applying it to BlueSpring.`,
-
-`Brandon is expected to provide a list of items that define the scope and support process for live-account reconciliation.`,
-
-`The Enterprise Data Organization helps manage account ownership, rep assignments, client relationships, and hierarchy mapping.`,
-
-`The team lacks clear visibility and ownership across feed procurement, reconciliation, mapping activities, and operational support responsibilities.`
-
-]
-
+`The Addepar live-account support process focuses on accounts already onboarded and helps identify visibility, mapping, hierarchy, and operational support issues.`
 ]
 };  
 const TOPICS = [
@@ -935,8 +923,6 @@ const TOPICS = [
          `What does the Enterprise Data Organization help manage?`,
          
          `What is the team's biggest operational challenge?`
-
-]
     ]
   },
 
@@ -1137,7 +1123,9 @@ card.appendChild(runBtn);
 card.appendChild(resultBox);
 
 const revealBtn = document.createElement('button');
-
+revealBtn.textContent = 'Show Answer';
+revealBtn.className = 'show-answer-btn';
+   
 const solution = document.createElement('div');
 solution.className = 'solution-box';
 solution.style.display = 'none';
