@@ -68,12 +68,12 @@ body {
   ::-webkit-scrollbar-thumb:hover { background: #cabbe8; }
 
   header {
-    border-bottom: 3px solid var(--accent);
-    background: var(--panel);
-    box-shadow: 0 2px 10px rgba(58,35,19,0.12);
-    padding: 16px 28px 0 28px;
-    flex: 0 0 auto;
-  }
+  border-bottom: 3px solid var(--accent);
+  background: var(--panel);
+  box-shadow: 0 2px 10px rgba(58,35,19,0.12);
+  padding: 20px 28px 16px 28px;
+  flex: 0 0 auto;
+}
 
   .header-top {
     display: flex;
@@ -110,44 +110,56 @@ body {
   }
 
   .tabs {
-    display: flex;
-    gap: 2px;
-    overflow-x: auto;
-    scrollbar-width: thin;
-    padding-bottom: 0;
-  }
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-bottom: 12px;
+}
 
   .tab {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12.5px;
-    color: var(--text-dim);
-    background: transparent;
-    border: 1px solid transparent;
-    border-bottom: none;
-    padding: 9px 16px 10px 16px;
-    white-space: nowrap;
-    cursor: pointer;
-    border-radius: 10px 10px 0 0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: color .15s ease, background .15s ease;
-  }
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-dim);
+
+  background: #f8fafc;
+  border: 2px solid var(--border);
+
+  padding: 16px 24px;
+
+  min-height: 56px;
+  min-width: 180px;
+
+  white-space: nowrap;
+  cursor: pointer;
+
+  border-radius: 12px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  transition: all .15s ease;
+}
 
   .tab .num { color: var(--text-faint); }
 
   .tab:hover { color: var(--text); background: var(--warm-dim); }
 
   .tab.active {
-    color: var(--accent);
-    background: var(--panel);
-    border-color: var(--border);
-    border-bottom: 1px solid var(--panel);
-    margin-bottom: -1px;
-    font-weight: 800;
-    position: relative;
-  }
+  color: white;
+  background: var(--accent);
+  border-color: var(--accent);
 
+  font-weight: 800;
+
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(30,58,138,.25);
+
+  position: relative;
+}
   .tab.active::after {
     content: "";
     position: absolute;
@@ -826,8 +838,76 @@ dtcc: [
 
 `A reconciliation investigation should determine whether the issue involves configuration, feed delivery, mapping, or source data quality.`
 
+],
+
+a360: [
+
+`A360 is Commonwealth's platform containing account and historical client information.`,
+
+`Historical A360 data allows advisors to retain performance history after transitioning to Kestra.`,
+
+`Offline accounts store historical-only activity that no longer exists within active production accounts.`,
+
+`Residual balances were transferred out to ensure historical accounts close cleanly at the end of the reporting period.`,
+
+`Annuities were excluded pending decisions regarding scope, pricing, and data quality.`,
+
+`Alternative assets require additional pricing and valuation decisions before loading.`,
+
+`Validation must be completed before the data is considered reliable for reporting.`,
+
+`Historical performance validation compares prior platform performance against Addepar-calculated results.`,
+
+`Z-Recon helps track and validate loaded historical account populations.`,
+
+`Current guidance is to exclude non-NFS accounts from the A360 historical conversion.`,
+
+`The goal is to preserve Commonwealth historical reporting after migration to Kestra.`,
+
+`Albridge files may provide additional transfer, ownership, and history information.`,
+
+`Accurate pricing sources are required before certain assets can be reported correctly.`,
+
+`Historical conversions involve legacy accounts, ownership changes, mapping exercises, and historical reporting requirements.`,
+
+`Major risks include incorrect mappings, incomplete performance history, valuation issues, and duplicate accounts.`
+
+],
+
+householding: [
+
+`Householding groups related client accounts together for reporting and advisor visibility.`,
+
+`Advisors gain a complete relationship view of assets and client relationships.`,
+
+`Yes. Visibility can be customized even within the same household structure.`,
+
+`Trusts may require unique permissions that differ from spouses or family members.`,
+
+`Ownership determines who can view and access accounts within Addepar.`,
+
+`Visibility issues often stem from hierarchy, permissions, ownership mappings, or household relationships.`,
+
+`Contra-account mapping links an old account to its replacement account.`,
+
+`Without contra mappings, historical reporting continuity may be lost during transitions.`,
+
+`ACATS transactions frequently contain references to prior account numbers.`,
+
+`Transaction notes often contain transfer details, account references, and historical identifiers.`,
+
+`NFS account numbers are commonly used to establish historical relationships and continuity.`,
+
+`Historical performance, ownership, and visibility relationships may become disconnected.`,
+
+`Duplicate mappings can inflate AUM and create inaccurate reporting.`,
+
+`Regex searches of transfer notes can often identify previous account numbers being referenced.`,
+
+`Kestra views householding as critical for advisor growth, visibility, onboarding success, and client experience.`
+
 ]
-}; 
+};
 const TOPICS = [
   {
     id: "joins",
@@ -1055,7 +1135,87 @@ const TOPICS = [
 
       `What role does Z-Recon play in DTCC onboarding?`,
 
-      `What should happen if only 600 of 1,000 expected accounts arrive?`
+            `What should happen if only 600 of 1,000 expected accounts arrive?`
+
+    ]
+  },
+
+  {
+    id: "a360",
+    label: "A360 & Historical Conversion",
+    tables: ["account","transactions","transaction_note"],
+    intro: "Commonwealth migrations, historical account loads, offline accounts, validation, and performance preservation.",
+    questions: [
+
+      `What is A360?`,
+
+      `Why is Kestra loading A360 historical data into Addepar?`,
+
+      `Why are offline accounts created during historical conversion?`,
+
+      `Why was residual value transferred out of offline accounts?`,
+
+      `Why are annuities excluded from the current A360 load?`,
+
+      `Why are alternative assets excluded from the initial conversion scope?`,
+
+      `Why should reporting be avoided until validation is complete?`,
+
+      `What is the purpose of historical performance validation?`,
+
+      `Why are accounts assigned to Z-Recon after loading?`,
+
+      `Why are non-NFS accounts being excluded from the historical load?`,
+
+      `What historical data is Addepar attempting to preserve from Commonwealth?`,
+
+      `What role does the Albridge transfer file play in the migration effort?`,
+
+      `Why is pricing source determination important before loading certain assets?`,
+
+      `How do historical conversions differ from onboarding net-new accounts?`,
+
+          `What are the major risks during historical migrations?`
+
+    ]
+  },
+
+  {
+    id: "householding",
+    label: "Householding & Contra Mapping",
+    tables: ["account","transaction_note","transactions"],
+    intro: "Account ownership, households, visibility, account conversions, and historical relationship mapping.",
+    questions: [
+
+      `What is householding?`,
+
+      `Why is householding important for advisors?`,
+
+      `Can members of the same family have different account visibility?`,
+
+      `How can trusts impact household design?`,
+
+      `What role does ownership play in Addepar visibility?`,
+
+      `What causes accounts to appear in Addepar but not in the investor portal?`,
+
+      `What is contra-account mapping?`,
+
+      `Why is contra-account mapping important during broker-dealer transitions?`,
+
+      `How do ACATS transactions help identify historical account relationships?`,
+
+      `What information can often be found in transaction_note records?`,
+
+      `Why are NFS account numbers important during conversions?`,
+
+      `What happens when old and new accounts are not mapped together?`,
+
+      `How can duplicate mappings impact AUM reporting?`,
+
+      `How can transaction notes be used to identify legacy account numbers?`,
+
+      `Why is householding considered a strategic initiative for Kestra?`
 
     ]
   }
