@@ -961,48 +961,21 @@ if (topic.id === "knowledge") {
     card.appendChild(body);
 
   const storageKey = `sqljoins-answer:${topic.id}:${i}`;
+  const isSqlTopic = topic.id !== "knowledge";
 
 const answer = document.createElement('textarea');
 answer.className = 'q-answer';
 answer.placeholder = 'Type your answer here…';
 answer.rows = 3;
 
-const feedback = document.createElement('div');
-feedback.className = 'answer-feedback';
-feedback.textContent = 'Enter an answer';
-
 try {
   answer.value = localStorage.getItem(storageKey) || '';
 } catch (e) {}
-
 answer.addEventListener('input', () => {
-
   try {
     localStorage.setItem(storageKey, answer.value);
-  } catch (e) {}
-
-  const expected =
-    ANSWER_KEY[topic.id] &&
-    ANSWER_KEY[topic.id][i];
-
-  if (!expected) return;
-
-  const value = answer.value.toLowerCase();
-
-  const correct = expected.some(word =>
-    value.includes(word.toLowerCase())
-  );
-
-  if (correct) {
-    feedback.textContent = "✅ Correct";
-    feedback.className = "answer-feedback correct";
-  } else {
-    feedback.textContent = "❌ Not quite yet";
-    feedback.className = "answer-feedback incorrect";
-  }
+  } catch(e) {}
 });
-card.appendChild(answer);
-
 const revealBtn = document.createElement('button');
 revealBtn.textContent = 'Show Answer';
 revealBtn.className = 'show-answer-btn';
