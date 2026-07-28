@@ -1127,7 +1127,8 @@ const revealBtn = document.createElement('button');
 revealBtn.textContent = 'Show Answer';
 revealBtn.className = 'show-answer-btn';
    
-const solution = document.createElement('div');
+const solution =
+  document.createElement('div');
 solution.className = 'solution-box';
 solution.style.display = 'none';
 
@@ -1139,13 +1140,24 @@ const explanation =
   EXPLANATIONS[topic.id]?.[i] ||
   "";
 
-solution.innerHTML = `
-<h4>SQL Solution</h4>
-<pre><code>${sql}</code></pre>
+if (topic.id === "qa" || topic.id === "knowledge") {
 
-<h4>Explanation</h4>
-<p>${explanation}</p>
-`;
+  solution.innerHTML = `
+    <h4>Answer</h4>
+    <p>${explanation}</p>
+  `;
+
+} else {
+
+  solution.innerHTML = `
+    <h4>SQL Solution</h4>
+    <pre><code>${sql}</code></pre>
+
+    <h4>Explanation</h4>
+    <p>${explanation}</p>
+  `;
+
+}
 
 revealBtn.onclick = () => {
   solution.style.display =
