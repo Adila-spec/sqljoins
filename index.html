@@ -111,54 +111,51 @@ body {
 
   .tabs {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding-bottom: 12px;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding-bottom: 4px;
 }
 
-  .tab {
+.tab {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text-dim);
 
-  background: #f8fafc;
-  border: 2px solid var(--border);
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: none;
 
-  padding: 16px 24px;
-
-  min-height: 56px;
-  min-width: 180px;
+  padding: 11px 14px;
 
   white-space: nowrap;
   cursor: pointer;
 
-  border-radius: 12px;
+  border-radius: 10px 10px 0 0;
 
   display: flex;
   align-items: center;
-  justify-content: center;
-
   gap: 8px;
 
-  transition: all .15s ease;
+  transition: color .15s ease,
+              background .15s ease;
 }
 
   .tab .num { color: var(--text-faint); }
 
   .tab:hover { color: var(--text); background: var(--warm-dim); }
 
-  .tab.active {
-  color: white;
-  background: var(--accent);
-  border-color: var(--accent);
-
+ .tab.active {
+  color: var(--accent);
+  background: var(--panel);
+  border-color: var(--border);
+  border-bottom: 1px solid var(--panel);
+  margin-bottom: -1px;
   font-weight: 800;
-
-  transform: translateY(-2px);
-  box-shadow: 0 4px 14px rgba(30,58,138,.25);
-
   position: relative;
+
+  box-shadow: 0 2px 8px rgba(30,58,138,.12);
 }
   .tab.active::after {
     content: "";
