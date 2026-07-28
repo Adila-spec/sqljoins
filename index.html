@@ -772,8 +772,62 @@ qa: [
 `Account reconciliation proves that expected accounts are present and accounted for within Addepar.`,
 
 `The Addepar live-account support process focuses on accounts already onboarded and helps identify visibility, mapping, hierarchy, and operational support issues.`
+],
+
+dtcc: [
+
+`DTCC is a data aggregator that provides account, annuity, and position data used by downstream platforms such as Addepar.`,
+
+`A data aggregator collects information from multiple financial institutions and distributes standardized data files.`,
+
+`Investigo and DTCC distribute files, while DST frequently relies on credential-based access and downloads.`,
+
+`DTCC distributes standardized files through participant-based delivery models.`,
+
+`Participant IDs identify which firm's data belongs to which recipient.`,
+
+`Loading the entire population simplifies reconciliation and reduces the risk of excluding valid accounts.`,
+
+`An annuity contract is treated as a parent holding that contains all associated investments.`,
+
+`Value-based assets are positions represented by contract value rather than shares or units.`,
+
+`Addepar can display either a single contract value or underlying investment allocations depending on data availability.`,
+
+`PNF, PVF, and PFF are DTCC file types that provide different levels of account and position detail.`,
+
+`PNF currently receives the highest processing priority.`,
+
+`Hierarchy determines which file should be trusted when conflicting data exists.`,
+
+`The same position may appear in multiple files because different files serve different reporting purposes.`,
+
+`A source-of-truth hierarchy establishes which feed is considered authoritative.`,
+
+`First-feed-wins means the first accepted source becomes the authoritative source for that account or position.`,
+
+`Under the current logic, positions may be reduced to zero after seven days without incoming data.`,
+
+`A longer grace period may reduce false zero balances caused by feed delays.`,
+
+`Data can disappear because of sponsor delays, carrier delays, processing issues, or feed interruptions.`,
+
+`Valuation notes provide transparency when balances are adjusted because of stale or missing data.`,
+
+`Teams should validate ownership, holdings, valuations, transactions, permissions, and account visibility.`,
+
+`Addepar wants alignment on what constitutes successful user acceptance testing.`,
+
+`DST and DTCC may contain the same account, creating potential duplicates.`,
+
+`Duplicate accounts can create AUM inflation, ownership confusion, and reporting inaccuracies.`,
+
+`Z-Recon is used to identify accounts expected to exist but missing from Addepar.`,
+
+`A reconciliation investigation should determine whether the issue involves configuration, feed delivery, mapping, or source data quality.`
+
 ]
-};  
+}; 
 const TOPICS = [
   {
     id: "joins",
@@ -941,12 +995,72 @@ const TOPICS = [
       `Who should you connect with regarding Investigo reconciliation?`,
       `Why is BlueSpring being reviewed separately?`,
       `What can cause an account to exist in Addepar but not appear in the portal?`,
-      `What does account reconciliation prove?`,
+           `What does account reconciliation prove?`,
       `What is the purpose of the Addepar live-account support process?`
     ]
-  }
-];
+  },
 
+  {
+    id: "dtcc",
+    label: "DTCC & Direct Business",
+    tables: ["account","monthlyflows"],
+    intro: "DTCC onboarding, Direct Business annuities, sandbox validation, aggregators, file hierarchy, and governance.",
+    questions: [
+
+      `What role does DTCC play within the Direct Business ecosystem?`,
+
+      `What is a data aggregator?`,
+
+      `How do DTCC and Investigo differ from DST?`,
+
+      `How is DTCC data delivered to Addepar?`,
+
+      `What is a DTCC participant ID?`,
+
+      `Why is Kestra loading all DTCC accounts rather than selected subsets?`,
+
+      `What is meant by every annuity contract being a holding account?`,
+
+      `What are value-based assets?`,
+
+      `How does Addepar display annuities when detailed holdings are unavailable?`,
+
+      `What are PNF, PVF, and PFF files?`,
+
+      `Which DTCC file currently receives highest priority?`,
+
+      `Why is file hierarchy important?`,
+
+      `Why can the same position appear in multiple DTCC files?`,
+
+      `What is a source-of-truth hierarchy?`,
+
+      `What does "first feed wins" mean?`,
+
+      `What is the current 7-day stale position rule?`,
+
+      `Why is Kestra discussing a possible 14-day rule?`,
+
+      `Why might data disappear even though an annuity is still active?`,
+
+      `Why are valuation notes important when positions go stale?`,
+
+      `What should be validated first in the sandbox before production rollout?`,
+
+      `Why does Addepar want feedback about DTCC UAT validation?`,
+
+      `What concerns exist around DST and DTCC overlap?`,
+
+      `Why is duplicate account creation a major risk?`,
+
+      `What role does Z-Recon play in DTCC onboarding?`,
+
+      `What should happen if only 600 of 1,000 expected accounts arrive?`
+
+    ]
+  }
+
+];
 function renderTabs(activeId) {
   const tabsEl = document.getElementById('tabs');
   tabsEl.innerHTML = '';
