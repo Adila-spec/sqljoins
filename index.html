@@ -5,35 +5,38 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Query Practice — Investigo Schema Drills</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+header {
+  border-bottom: 1px solid var(--border);
+  background: #ffffff;
 <style>
-  :root{
-    --bg: #16301f;
-    --panel: #faf1da;
-    --panel-alt: #b9c9a0;
-    --border: #5a7a4e;
-    --border-soft: #a9c090;
-    --text: #2b1a16;
-    --text-dim: #6e463f;
-    --text-faint: #a1806f;
-    --accent: #7a1f2e;
-    --accent-dim: rgba(122,31,46,0.13);
-    --accent-line: rgba(122,31,46,0.5);
-    --warm: #b8862e;
-    --warm-dim: rgba(184,134,46,0.22);
-    --mint: #2f4a34;
-    --mint-dim: rgba(47,74,52,0.18);
-    --spot: #3a1c1c;
-    --leopard: radial-gradient(circle at 15% 25%, var(--spot) 9%, transparent 10%),
-               radial-gradient(circle at 42% 12%, var(--spot) 7%, transparent 8%),
-               radial-gradient(circle at 68% 30%, var(--spot) 10%, transparent 11%),
-               radial-gradient(circle at 88% 15%, var(--spot) 6%, transparent 7%),
-               radial-gradient(circle at 28% 65%, var(--spot) 8%, transparent 9%),
-               radial-gradient(circle at 58% 78%, var(--spot) 9%, transparent 10%),
-               radial-gradient(circle at 82% 68%, var(--spot) 7%, transparent 8%),
-               radial-gradient(circle at 5% 85%, var(--spot) 6%, transparent 7%);
-    --zebra: repeating-linear-gradient(48deg, var(--spot) 0 7px, transparent 7px 16px);
-  }
+ :root{
+  --bg: #eef4fb;
+  --panel: #ffffff;
+  --panel-alt: #f5f9ff;
+
+  --border: #cbd5e1;
+  --border-soft: #dbe4f0;
+
+  --text: #0f172a;
+  --text-dim: #475569;
+  --text-faint: #64748b;
+
+  --accent: #1e3a8a;
+  --accent-dim: rgba(30,58,138,.10);
+  --accent-line: rgba(30,58,138,.25);
+
+  --warm: #2563eb;
+  --warm-dim: rgba(37,99,235,.08);
+
+  --mint: #1d4ed8;
+  --mint-dim: rgba(29,78,216,.08);
+
+  --spot: transparent;
+
+  --leopard: none;
+  --zebra: none;
+}
+`
 
   * { box-sizing: border-box; }
 
