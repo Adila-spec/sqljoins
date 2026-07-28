@@ -540,8 +540,22 @@
 <div class="print-strip zebra"></div>
 <footer class="hint-strip">scroll each panel independently — tables stay put on the left, questions build top to bottom on the right</footer>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+
 <script>
-const TABLES = {
+let db;
+
+async function initializeDatabase() {
+
+  const SQL = await initSqlJs({
+    locateFile: file =>
+      `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${file}`
+  });
+
+  db = new SQL.Database();
+
+}
+  const TABLES = {
   transactions: {
     cols: ["recid","accountid","trancodeid","netamount","effectivedate"],
     rows: [
@@ -961,8 +975,7 @@ if (topic.id === "knowledge") {
     card.appendChild(body);
 
   const storageKey = `sqljoins-answer:${topic.id}:${i}`;
-  const isSqlTopic = topic.id !== "knowledge";
-
+    
 const answer = document.createElement('textarea');
 answer.className = 'q-answer';
 answer.placeholder = 'Type your answer here…';
@@ -976,9 +989,43 @@ answer.addEventListener('input', () => {
     localStorage.setItem(storageKey, answer.value);
   } catch(e) {}
 });
+
+card.appendChild(answer);
+
+const resultBox = document.createElement('div');
+resultBox.className = 'answer-feedback';
+resultBox.style.display = 'none';
+
+const runBtn = document.createElement('button');
+runBtn.textContent = 'Run Query';
+runBtn.className = 'show-answer-btn';
+
+runBtn.onclick = () => {
+
+  resultBox.style.display = 'block';
+
+  if (!answer.value.trim()) {
+
+    resultBox.className =
+      'answer-feedback incorrect';
+
+    resultBox.textContent =
+      'Please enter a query first.';
+
+    return;
+  }
+
+  resultBox.className =
+    'answer-feedback correct';
+
+  resultBox.textContent =
+    '✅ Query submitted';
+};
+
+card.appendChild(runBtn);
+card.appendChild(resultBox);
+
 const revealBtn = document.createElement('button');
-revealBtn.textContent = 'Show Answer';
-revealBtn.className = 'show-answer-btn';
 
 const solution = document.createElement('div');
 solution.className = 'solution-box';
