@@ -636,28 +636,185 @@ const ANSWER_KEY = {
 
 const SQL_SOLUTIONS = {
   joins: [
-`
-SELECT
-    a.accountno,
-    t.netamount
+`SELECT a.accountno, t.netamount
 FROM transactions t
-JOIN account a
-    ON t.accountid = a.recid;
-`,
-`
-SELECT
-    t.recid,
-    a.accountno,
-    tn.note
+JOIN account a ON t.accountid = a.recid;`,
+
+`SELECT t.recid, a.accountno, tn.note
 FROM transactions t
-JOIN account a
-    ON t.accountid = a.recid
-LEFT JOIN transaction_note tn
-    ON tn.transactionid = t.recid;
-`
+JOIN account a ON t.accountid = a.recid
+LEFT JOIN transaction_note tn ON tn.transactionid = t.recid;`,
+
+`SELECT t.recid, a.accountno, tn.note
+FROM transactions t
+JOIN account a ON t.accountid = a.recid
+JOIN transaction_note tn ON tn.transactionid = t.recid;`,
+
+`SELECT a.accountno, r.repcode
+FROM account a
+JOIN representative r ON a.representativeid = r.recid
+WHERE a.accountno = 'C9B024306';`,
+
+`SELECT t.recid, a.accountno, tn.note, r.repcode
+FROM transactions t
+JOIN account a ON t.accountid = a.recid
+LEFT JOIN transaction_note tn ON tn.transactionid = t.recid
+JOIN representative r ON a.representativeid = r.recid
+WHERE a.accountno = 'J7Z022009';`
+  ],
+
+  filtering: [
+`SELECT t.recid, a.accountno, tn.note, r.repcode
+FROM transactions t
+JOIN account a ON t.accountid = a.recid
+LEFT JOIN transaction_note tn ON tn.transactionid = t.recid
+JOIN representative r ON a.representativeid = r.recid
+WHERE 1=1 AND t.netamount > 0;`,
+
+`... WHERE 1=1 AND t.trancodeid NOT IN (20);`,
+
+`... WHERE 1=1 AND month(t.effectivedate) = 3;`,
+
+`... WHERE 1=1 AND t.effectivedate BETWEEN '2026-02-01' AND '2026-02-28';`,
+
+`... WHERE 1=1 AND month(t.effectivedate) = 3 AND a.accountno = 'J7M242999';`
+  ],
+
+  regex: [
+`SELECT note FROM transaction_note WHERE note RLIKE 'B3S-\\\\d+';`,
+
+`SELECT note, regexp_extract(note, 'B3S-(\\\\d+)', 1) AS old_account
+FROM transaction_note;`,
+
+`SELECT note,
+  regexp_extract(note, '([A-Z][A-Z0-9]{2})-(\\\\d+)', 1) AS prefix,
+  regexp_extract(note, '([A-Z][A-Z0-9]{2})-(\\\\d+)', 2) AS number
+FROM transaction_note;`,
+
+`SELECT note,
+  NULLIF(regexp_extract(note, '([A-Z][A-Z0-9]{2})-(\\\\d+)', 1), '') AS old_account
+FROM transaction_note;`,
+
+`SELECT note, note RLIKE '[A-Z][A-Z0-9]{2}-\\\\d+' AS has_prefix
+FROM transaction_note;`
+  ],
+
+  ctes: [
+`WITH acct_flows AS (
+  SELECT investigoaccountid, firm_name
+  FROM monthlyflows
+  WHERE firm_name = 'Freeman Financial- Firm'
+)
+SELECT * FROM acct_flows;`,
+
+`WITH acct_flows AS (
+  SELECT investigoaccountid, firm_name
+  FROM monthlyflows
+  WHERE firm_name = 'Freeman Financial- Firm'
+)
+SELECT a.accountno
+FROM acct_flows af
+JOIN account a ON af.investigoaccountid = a.recid;`,
+
+`SELECT a.accountno
+FROM (
+  SELECT investigoaccountid, firm_name
+  FROM monthlyflows
+  WHERE firm_name = 'Freeman Financial- Firm'
+) af
+JOIN account a ON af.investigoaccountid = a.recid;`,
+
+`WITH freeman_flows AS (
+  SELECT investigoaccountid FROM monthlyflows WHERE firm_name = 'Freeman Financial- Firm'
+),
+riverstone_flows AS (
+  SELECT investigoaccountid FROM monthlyflows WHERE firm_name = 'Riverstone Advisors'
+)
+SELECT a.accountno FROM freeman_flows f JOIN account a ON f.investigoaccountid = a.recid
+UNION
+SELECT a.accountno FROM riverstone_flows r JOIN account a ON r.investigoaccountid = a.recid;`,
+
+`-- Two CTEs make it trivial to report per-firm counts separately:
+SELECT COUNT(*) FROM (
+  SELECT investigoaccountid FROM monthlyflows WHERE firm_name = 'Freeman Financial- Firm'
+) f;
+-- vs. one WHERE...IN clause, which requires a GROUP BY firm_name afterward instead.`
+  ],
+
+  windows: [
+`SELECT investigoaccountid, firm_name, transaction_date,
+  ROW_NUMBER() OVER (PARTITION BY investigoaccountid ORDER BY transaction_date DESC) AS rn
+FROM monthlyflows;`,
+
+`SELECT investigoaccountid, firm_name, transaction_date,
+  ROW_NUMBER() OVER (PARTITION BY investigoaccountid ORDER BY transaction_date DESC) AS rn
+FROM monthlyflows
+QUALIFY rn = 1;`,
+
+`WITH latest_flow AS (
+  SELECT investigoaccountid, transaction_date,
+    ROW_NUMBER() OVER (PARTITION BY investigoaccountid ORDER BY transaction_date DESC) AS rn
+  FROM monthlyflows
+  QUALIFY rn = 1
+)
+SELECT lf.investigoaccountid, t.recid, t.effectivedate
+FROM latest_flow lf
+JOIN transactions t ON lf.investigoaccountid = t.accountid
+QUALIFY ROW_NUMBER() OVER (PARTITION BY t.accountid ORDER BY t.effectivedate ASC) = 1;`,
+
+`SELECT mf.investigoaccountid, mf.transaction_date, t.recid
+FROM monthlyflows mf
+JOIN transactions t ON mf.investigoaccountid = t.accountid
+WHERE mf.investigoaccountid = 1;`,
+
+`SELECT firm_name, investigoaccountid, MAX(transaction_date) AS latest_date
+FROM monthlyflows
+GROUP BY firm_name, investigoaccountid;`
+  ],
+
+  aliasing: [
+`SELECT a.accountno AS \`Account Number\`, r.repcode AS \`Rep Code\`
+FROM account a
+JOIN representative r ON a.representativeid = r.recid;`,
+
+`SELECT a.accountno, r.repcode, *
+FROM account a
+JOIN representative r ON a.representativeid = r.recid;`,
+
+`-- Same query as above, kept deliberately in this shape for debugging visibility.`,
+
+`SELECT a.accountno, tc.description AS \`Transaction Type\`
+FROM transactions t
+JOIN account a ON t.accountid = a.recid
+JOIN trancode tc ON t.trancodeid = tc.recid;`,
+
+`SELECT
+  a.recid AS \`Account ID\`,
+  a.accountno AS \`Account Number\`,
+  a.representativeid AS \`Representative ID\`,
+  a.custodianid AS \`Custodian ID\`
+FROM account a;`
+  ],
+
+  debugging: [
+`SELECT * FROM transactions WHERE recid = 1005;`,
+
+`SELECT * FROM transaction_note WHERE transactionid = 1005;`,
+
+`-- SELECT * FROM transactions WHERE accountid = 3;
+-- SELECT * FROM account WHERE recid = 3;
+-- SELECT * FROM monthlyflows WHERE investigoaccountid = 3;`,
+
+`SELECT recid FROM account WHERE accountno = 'J7M242999';
+-- then hardcoded downstream: SELECT * FROM transactions WHERE accountid = 2;`,
+
+`WITH target_account AS (
+  SELECT recid FROM account WHERE accountno = 'J7M242999'
+)
+SELECT * FROM transactions t
+JOIN target_account ta ON t.accountid = ta.recid;`
   ]
 };
-
 const EXPLANATIONS = {
   joins: [
     "Every transaction joins to exactly one account, so 7 rows are returned.",
@@ -1410,9 +1567,8 @@ const sql =
 const explanation =
   EXPLANATIONS[topic.id]?.[i] ||
   "";
-
-if (topic.id === "qa" || topic.id === "knowledge") {
-
+const knowledgeTopics = ["qa", "knowledge", "dtcc", "a360", "householding"];
+if (knowledgeTopics.includes(topic.id)) {
   solution.innerHTML = `
     <h4>Answer</h4>
     <p>${explanation}</p>
