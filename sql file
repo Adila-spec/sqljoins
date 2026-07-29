@@ -1,7 +1,5 @@
 -- ============================================================================
--- CONTRA ACCOUNT MAPPING — enhanced with calculated fields
--- Builds on the existing acat_map query (parses account refs out of notes)
--- and adds fields that turn "here's the raw note" into "here's what it means."
+-- CONTRA ACCOUNT MAPPING 
 -- ============================================================================
 
 WITH acat_notes AS (
