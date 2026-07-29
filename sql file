@@ -1,0 +1,106 @@
+-- ============================================================================
+-- CONTRA ACCOUNT MAPPING — enhanced with calculated fields
+-- Builds on the existing acat_map query (parses account refs out of notes)
+-- and adds fields that turn "here's the raw note" into "here's what it means."
+-- ============================================================================
+
+WITH acat_notes AS (
+    -- STEP 1: same parsing logic as before, but pull in NetAmount/EffectiveDate
+    -- from the transaction table so we have something to calculate ON TOP of
+    -- the parsed note fields.
+    SELECT
+        m.firm_name,
+        r.repcode,
+        a.AccountNo                                                       AS New_Account,
+        t.recid                                                           AS TransactionID,
+        t.NetAmount,
+        t.EffectiveDate,
+        n.note,
+        NULLIF(regexp_extract(n.note, '([A-Z][A-Z0-9]{2})-\\d+', 1), '')  AS Source_Prefix,
+        NULLIF(regexp_extract(n.note, '[A-Z][A-Z0-9]{2}-(\\d+)', 1), '')  AS Old_Account_No,
+        n.note RLIKE '[A-Z][A-Z0-9]{2}-\\d+'                              AS Has_Prefix
+    FROM k3pclean.assets.investigo_tbltransaction t
+    JOIN k3pclean.assets.investigo_tbltransaction_note n
+        ON n.TransactionID = t.recid
+    JOIN k3pclean.account.investigo_tblaccount a
+        ON t.AccountID = a.recid
+    JOIN k3pclean.rep.investigo_tblrepresentative r
+        ON a.representativeid = r.recid
+    JOIN `snowflake-prd_edw`.`asset`.`monthlyflows` m
+        ON m.investigoaccountid = a.recid
+    WHERE m.firm_name = 'Freeman Financial- Firm'   -- swap/parameterize per firm
+      AND upper(n.note) LIKE '%ACATS%'
+),
+
+acat_calculated AS (
+    -- STEP 2: turn the raw parsed fields into business-readable calculated fields.
+    SELECT
+        *,
+
+        -- Which way did the money move? Positive = coming in, negative = going out.
+        CASE
+            WHEN NetAmount >= 0 THEN 'Transfer In'
+            ELSE 'Transfer Out'
+        END AS Transfer_Direction,
+
+        -- How much do we trust this contra-account match? Beginners can filter
+        -- straight to 'High' and skip everything else while they're learning.
+        CASE
+            WHEN Has_Prefix AND Old_Account_No IS NOT NULL THEN 'High'   -- clean B3S-###### style match
+            WHEN note IS NOT NULL AND note <> ''            THEN 'Low'    -- has a note, but not the expected format
+            ELSE 'None'                                                   -- no usable note at all
+        END AS Mapping_Confidence,
+
+        -- How stale is this transfer? Useful for prioritizing recent activity
+        -- over ancient history when cleaning up mappings.
+        datediff(current_date(), EffectiveDate) AS Days_Since_Transfer,
+
+        -- If the same New_Account <-> Old_Account_No pairing shows up on
+        -- multiple transactions, rank them so we can grab just the most
+        -- recent one as the "primary" record for that pairing (rank = 1).
+        ROW_NUMBER() OVER (
+            PARTITION BY New_Account, Old_Account_No
+            ORDER BY EffectiveDate DESC
+        ) AS Mapping_Recency_Rank
+
+    FROM acat_notes
+),
+
+acat_pair_summary AS (
+    -- STEP 3: collapse to one row per (New_Account, Old_Account_No) pairing so
+    -- the team can see the full scope of a mapping at a glance — how many
+    -- transactions support it and how much money is actually involved.
+    SELECT
+        New_Account,
+        Old_Account_No,
+        Source_Prefix,
+        COUNT(*)              AS Transaction_Count,
+        SUM(NetAmount)         AS Total_NetAmount,
+        MIN(EffectiveDate)     AS First_Transfer_Date,
+        MAX(EffectiveDate)     AS Last_Transfer_Date
+    FROM acat_calculated
+    WHERE Old_Account_No IS NOT NULL
+    GROUP BY New_Account, Old_Account_No, Source_Prefix
+)
+
+-- FINAL OUTPUT: row-level detail + pairing-level summary side by side.
+SELECT
+    c.firm_name,
+    c.repcode,
+    c.New_Account,
+    c.Old_Account_No,
+    c.Source_Prefix,
+    c.Transfer_Direction,
+    c.Mapping_Confidence,
+    c.Days_Since_Transfer,
+    c.Mapping_Recency_Rank,          -- = 1 means "the most recent record for this pairing"
+    s.Transaction_Count,             -- how many transactions support this mapping
+    s.Total_NetAmount,               -- total dollars moved under this mapping
+    s.First_Transfer_Date,
+    s.Last_Transfer_Date,
+    c.note
+FROM acat_calculated c
+LEFT JOIN acat_pair_summary s
+    ON c.New_Account = s.New_Account
+   AND c.Old_Account_No = s.Old_Account_No
+ORDER BY c.New_Account, c.Mapping_Recency_Rank;
