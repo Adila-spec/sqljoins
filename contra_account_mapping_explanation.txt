@@ -1,0 +1,146 @@
+CONTRA ACCOUNT MAPPING — ENHANCED QUERY WITH INLINE EXPLANATION
+
+This document walks through the contra account mapping query one section at
+a time, with a paragraph of explanation before each piece of SQL. It builds
+on the existing acat_map query, which parses account references out of
+free-text transaction notes, and adds calculated fields on top of that
+parsing so the output tells you what the data means, not just what it says.
+
+Before getting into the logic, it helps to know what the short table
+aliases stand for, since they show up throughout every section below. The
+alias t refers to tbltransaction, the core transaction ledger, holding one
+row per transaction. The alias n refers to tbltransaction_note, the table
+of free-text notes attached to individual transactions; this is the table
+where the old account number is actually hiding, buried inside
+human-written text rather than a clean structured column. The alias a
+refers to tblaccount, the account master table, holding the account number
+along with foreign keys to the representative and custodian. The alias r
+refers to tblrepresentative, the advisor or rep assigned to the account,
+and the alias m refers to monthlyflows, a firm-level flow table from the
+Snowflake warehouse that is joined in purely so the query can filter down
+to a single firm. Two more aliases appear later, in the final SELECT: c
+refers to the acat_calculated CTE, and s refers to the acat_pair_summary
+CTE.
+
+The query is organized into three CTEs, each one answering a different
+question and depending on the CTE before it having already answered its
+own question first. The first CTE, acat_notes, answers the question "what
+does the raw data say?" It is pure extraction: it pulls the account number
+out of the note text using regular expressions and joins together just
+enough tables to also carry along NetAmount and EffectiveDate. Nothing is
+interpreted or judged at this stage, the data is simply being structured
+into a usable shape. Here is that CTE:
+
+WITH acat_notes AS (
+    SELECT
+        m.firm_name,
+        r.repcode,
+        a.AccountNo                                                       AS New_Account,
+        t.recid                                                           AS TransactionID,
+        t.NetAmount,
+        t.EffectiveDate,
+        n.note,
+        NULLIF(regexp_extract(n.note, '([A-Z][A-Z0-9]{2})-\\d+', 1), '')  AS Source_Prefix,
+        NULLIF(regexp_extract(n.note, '[A-Z][A-Z0-9]{2}-(\\d+)', 1), '')  AS Old_Account_No,
+        n.note RLIKE '[A-Z][A-Z0-9]{2}-\\d+'                              AS Has_Prefix
+    FROM k3pclean.assets.investigo_tbltransaction t
+    JOIN k3pclean.assets.investigo_tbltransaction_note n
+        ON n.TransactionID = t.recid
+    JOIN k3pclean.account.investigo_tblaccount a
+        ON t.AccountID = a.recid
+    JOIN k3pclean.rep.investigo_tblrepresentative r
+        ON a.representativeid = r.recid
+    JOIN `snowflake-prd_edw`.`asset`.`monthlyflows` m
+        ON m.investigoaccountid = a.recid
+    WHERE m.firm_name = 'Freeman Financial- Firm'   -- swap/parameterize per firm
+      AND upper(n.note) LIKE '%ACATS%'
+),
+
+The second CTE, acat_calculated, answers the question "what does that raw
+data actually mean?" This is where interpretation happens: a positive or
+negative NetAmount becomes a readable "Transfer In" or "Transfer Out"
+label, a successful or failed regex match becomes a confidence tier of
+High, Low, or None, and duplicate mappings across multiple transactions get
+ranked by recency. This step cannot run before acat_notes exists, because
+it is impossible to judge how confident you are in a mapping that has not
+been attempted yet. Here is that CTE:
+
+acat_calculated AS (
+    SELECT
+        *,
+
+        CASE
+            WHEN NetAmount >= 0 THEN 'Transfer In'
+            ELSE 'Transfer Out'
+        END AS Transfer_Direction,
+
+        CASE
+            WHEN Has_Prefix AND Old_Account_No IS NOT NULL THEN 'High'
+            WHEN note IS NOT NULL AND note <> ''            THEN 'Low'
+            ELSE 'None'
+        END AS Mapping_Confidence,
+
+        datediff(current_date(), EffectiveDate) AS Days_Since_Transfer,
+
+        ROW_NUMBER() OVER (
+            PARTITION BY New_Account, Old_Account_No
+            ORDER BY EffectiveDate DESC
+        ) AS Mapping_Recency_Rank
+
+    FROM acat_notes
+),
+
+The third CTE, acat_pair_summary, answers the question "how significant is
+this relationship overall?" It aggregates across transactions, counting
+how many transactions support a given account pairing and summing the
+dollars involved, along with the earliest and latest transfer dates. This
+step has to run last because it groups rows by Old_Account_No, and that
+value only exists once acat_calculated has already resolved it row by row.
+Here is that CTE:
+
+acat_pair_summary AS (
+    SELECT
+        New_Account,
+        Old_Account_No,
+        Source_Prefix,
+        COUNT(*)              AS Transaction_Count,
+        SUM(NetAmount)         AS Total_NetAmount,
+        MIN(EffectiveDate)     AS First_Transfer_Date,
+        MAX(EffectiveDate)     AS Last_Transfer_Date
+    FROM acat_calculated
+    WHERE Old_Account_No IS NOT NULL
+    GROUP BY New_Account, Old_Account_No, Source_Prefix
+)
+
+Finally, the SELECT at the bottom joins acat_calculated and
+acat_pair_summary back together, so that the output shows row-level detail,
+including the actual note text and the confidence tier, alongside
+pairing-level totals, without the GROUP BY in acat_pair_summary erasing the
+individual notes that a human still needs to read for the messy or
+low-confidence cases. Here is that final piece:
+
+SELECT
+    c.firm_name,
+    c.repcode,
+    c.New_Account,
+    c.Old_Account_No,
+    c.Source_Prefix,
+    c.Transfer_Direction,
+    c.Mapping_Confidence,
+    c.Days_Since_Transfer,
+    c.Mapping_Recency_Rank,          -- = 1 means "the most recent record for this pairing"
+    s.Transaction_Count,             -- how many transactions support this mapping
+    s.Total_NetAmount,               -- total dollars moved under this mapping
+    s.First_Transfer_Date,
+    s.Last_Transfer_Date,
+    c.note
+FROM acat_calculated c
+LEFT JOIN acat_pair_summary s
+    ON c.New_Account = s.New_Account
+   AND c.Old_Account_No = s.Old_Account_No
+ORDER BY c.New_Account, c.Mapping_Recency_Rank;
+
+That final ORDER BY groups all rows for the same New_Account together and,
+within each account, puts the most recently ranked mapping first, which
+makes it easy to scan down the results and see one account's full mapping
+history at a time.
