@@ -1,16 +1,9 @@
 -- ============================================================================
--- CONTRA ACCOUNT MAPPING — same logic as the single-query version, split into
--- 4 notebook cells. Each cell writes a temp view so the next cell (and you,
--- while debugging) can query the intermediate result directly.
---
--- Paste each "CELL" block into its own notebook cell, in order.
--- Temp views only last for the current notebook/cluster session.
+-- CONTRA ACCOUNT MAPPING 
 -- ============================================================================
 
 
--- ===== CELL 1: Parse the note field into structured columns ================
--- Run this alone first. Then try: SELECT * FROM acat_notes LIMIT 50;
--- to sanity-check the regex extraction before building on top of it.
+-- ===== CELL 1: Parse the note field into structured columns ================.
 
 CREATE OR REPLACE TEMP VIEW acat_notes AS
 SELECT
