@@ -1,0 +1,109 @@
+-- ============================================================================
+-- CONTRA ACCOUNT MAPPING — same logic as the single-query version, split into
+-- 4 notebook cells. Each cell writes a temp view so the next cell (and you,
+-- while debugging) can query the intermediate result directly.
+--
+-- Paste each "CELL" block into its own notebook cell, in order.
+-- Temp views only last for the current notebook/cluster session.
+-- ============================================================================
+
+
+-- ===== CELL 1: Parse the note field into structured columns ================
+-- Run this alone first. Then try: SELECT * FROM acat_notes LIMIT 50;
+-- to sanity-check the regex extraction before building on top of it.
+
+CREATE OR REPLACE TEMP VIEW acat_notes AS
+SELECT
+    m.firm_name,
+    r.repcode,
+    a.AccountNo                                                       AS New_Account,
+    t.recid                                                           AS TransactionID,
+    t.NetAmount,
+    t.EffectiveDate,
+    n.note,
+    NULLIF(regexp_extract(n.note, '([A-Z][A-Z0-9]{2})-\\d+', 1), '')  AS Source_Prefix,
+    NULLIF(regexp_extract(n.note, '[A-Z][A-Z0-9]{2}-(\\d+)', 1), '')  AS Old_Account_No,
+    n.note RLIKE '[A-Z][A-Z0-9]{2}-\\d+'                              AS Has_Prefix
+FROM k3pclean.assets.investigo_tbltransaction t
+JOIN k3pclean.assets.investigo_tbltransaction_note n
+    ON n.TransactionID = t.recid
+JOIN k3pclean.account.investigo_tblaccount a
+    ON t.AccountID = a.recid
+JOIN k3pclean.rep.investigo_tblrepresentative r
+    ON a.representativeid = r.recid
+JOIN `snowflake-prd_edw`.`asset`.`monthlyflows` m
+    ON m.investigoaccountid = a.recid
+WHERE m.firm_name = 'Freeman Financial- Firm'   -- swap/parameterize per firm
+  AND upper(n.note) LIKE '%ACATS%';
+
+
+-- ===== CELL 2: Add the calculated / business-readable fields ===============
+-- Run this after Cell 1. Try: SELECT * FROM acat_calculated WHERE Mapping_Confidence = 'Low';
+-- to see exactly which notes need a human to read them.
+
+CREATE OR REPLACE TEMP VIEW acat_calculated AS
+SELECT
+    *,
+
+    CASE
+        WHEN NetAmount >= 0 THEN 'Transfer In'
+        ELSE 'Transfer Out'
+    END AS Transfer_Direction,
+
+    CASE
+        WHEN Has_Prefix AND Old_Account_No IS NOT NULL THEN 'High'
+        WHEN note IS NOT NULL AND note <> ''            THEN 'Low'
+        ELSE 'None'
+    END AS Mapping_Confidence,
+
+    datediff(current_date(), EffectiveDate) AS Days_Since_Transfer,
+
+    ROW_NUMBER() OVER (
+        PARTITION BY New_Account, Old_Account_No
+        ORDER BY EffectiveDate DESC
+    ) AS Mapping_Recency_Rank
+
+FROM acat_notes;
+
+
+-- ===== CELL 3: Summarize each account pairing ===============================
+-- Run this after Cell 2. Try: SELECT * FROM acat_pair_summary ORDER BY Total_NetAmount DESC;
+-- to see which contra-account pairings represent the most money.
+
+CREATE OR REPLACE TEMP VIEW acat_pair_summary AS
+SELECT
+    New_Account,
+    Old_Account_No,
+    Source_Prefix,
+    COUNT(*)              AS Transaction_Count,
+    SUM(NetAmount)         AS Total_NetAmount,
+    MIN(EffectiveDate)     AS First_Transfer_Date,
+    MAX(EffectiveDate)     AS Last_Transfer_Date
+FROM acat_calculated
+WHERE Old_Account_No IS NOT NULL
+GROUP BY New_Account, Old_Account_No, Source_Prefix;
+
+
+-- ===== CELL 4: Final combined view ==========================================
+-- Row-level detail + pairing-level summary side by side.
+
+SELECT
+    c.firm_name,
+    c.repcode,
+    c.New_Account,
+    c.Old_Account_No,
+    c.Source_Prefix,
+    c.Transfer_Direction,
+    c.Mapping_Confidence,
+    c.Days_Since_Transfer,
+    c.Mapping_Recency_Rank,
+    s.Transaction_Count,
+    s.Total_NetAmount,
+    s.First_Transfer_Date,
+    s.Last_Transfer_Date,
+    c.note
+FROM acat_calculated c
+LEFT JOIN acat_pair_summary s
+    ON c.New_Account = s.New_Account
+   AND c.Old_Account_No = s.Old_Account_No
+ORDER BY c.New_Account, c.Mapping_Recency_Rank;
